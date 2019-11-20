@@ -1,0 +1,28 @@
+language: node_js
+
+services:
+  - docker
+
+node_js:
+  - 8.2.1
+
+install:
+  - npm install newman
+
+before_script:
+  - docker-compose pull
+  - docker-compose up -d --build
+  - docker ps -a 
+  - sleep 30
+
+script:
+  - node_modules/.bin/newman run https://esrl.dk/opn/opn_tests.json --insecure && ! wget --timeout 1 http://localhost:5000 && ! wget --timeout 1 http://localhost:3306
+
+after_script:
+  - docker-compose down -v --rmi all
+
+notifications:
+  webhooks:
+    - https://esrl.dk/opn/travis_callback.php
+  on_success: always # default: change0
+  on_failure: always # default: always
