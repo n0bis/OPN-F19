@@ -1,14 +1,8 @@
 FROM alpine
 
-# Timezone or else invalid cert
-ENV TIMEZONE Europe/Copenhagen
-
 RUN	apk update && \
 	apk upgrade && \
 	apk add --update openssl nginx && \
-	apk add --update tzdata && \
-	cp /usr/share/zoneinfo/${TIMEZONE} /etc/localtime && \
-	echo "${TIMEZONE}" > /etc/timezone && \
 	mkdir /etc/nginx/certificates && \
 	openssl req \
 		-x509 \
@@ -19,15 +13,10 @@ RUN	apk update && \
 		-nodes \
 		-subj /CN=localhost && \
 	mkdir /www && \
-	apk del tzdata && \
+  mkdir -p /run/nginx && \
 	rm -rf /var/cache/apk/*
 
-RUN mkdir -p /run/nginx
-
-COPY etc/nginx.conf /etc/nginx/nginx.conf
-COPY etc/common.conf /etc/nginx/common.conf
-COPY etc/conf.d/default.conf /etc/nginx/conf.d/default.conf
-COPY etc/conf.d/ssl.conf /etc/nginx/conf.d/ssl.conf
+COPY nginx.conf /etc/nginx/nginx.conf
 COPY html www/ 
 COPY html/* /usr/share/nginx/html/
 
