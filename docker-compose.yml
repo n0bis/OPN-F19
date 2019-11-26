@@ -1,0 +1,55 @@
+version: "3"
+
+services:
+  proxy:
+    build:
+      context: ./proxy
+      dockerfile: ./Dockerfile
+    container_name: proxy
+    ports:
+      - "80:80"
+      - "443:443"
+    expose:
+      - "80"
+      - "443"
+    depends_on:
+      - backend
+    networks:
+      - network1
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: ./Dockerfile
+    container_name: backend
+    expose:
+      - "5000"
+    environment:
+      APP_PORT: 5000
+      APP_DEBUG: "False"
+      MYSQL_DATABASE_USER: "root"
+      MYSQL_DATABASE_PASSWORD: ""
+      MYSQL_DATABASE_DB: "persons"
+      MYSQL_DATABASE_HOST: "database"
+      MYSQL_DATABASE_PORT: 3306
+    depends_on:
+      - database
+    networks:
+      - network1
+      - network2
+
+  database:
+    build:
+      context: ./database
+      dockerfile: ./Dockerfile
+    container_name: database
+    expose:
+      - "3306"
+    networks:
+      - network2
+
+networks:
+  network1:
+    driver: bridge
+  network2:
+    driver: bridge
