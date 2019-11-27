@@ -40,7 +40,7 @@ def createPerson():
 
     cur.execute('INSERT INTO person (Firstname, Lastname) VALUES (%(firstname)s, %(lastname)s)', { 'firstname': firstname, 'lastname': lastname})
     conn.commit()
-    return Response('', 201)
+    return Response('', 200)
     cur.close()
     conn.close()
   except Exception as e:
