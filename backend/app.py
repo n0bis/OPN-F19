@@ -1,46 +1,48 @@
 #!/usr/bin/python3
 
-from flask import Flask, request, jsonify
-from flaskext.mysql import MySQL
+from flask import Flask, request, jsonify, Response
+from flask_cors import CORS
+import mysql.connector
+from mysql.connector import Error
 import os
 
-application = Flask(__name__)
+app = Flask(__name__)
+CORS(app)
 
-application.config['MYSQL_DATABASE_USER'] = os.environ['MYSQL_DATABASE_USER']
-application.config['MYSQL_DATABASE_PASSWORD'] = os.environ['MYSQL_DATABASE_PASSWORD']
-application.config['MYSQL_DATABASE_DB'] = os.environ['MYSQL_DATABASE_DB']
-application.config['MYSQL_DATABASE_HOST'] = os.environ['MYSQL_DATABASE_HOST']
-application.config['MYSQL_DATABASE_PORT'] = int(os.environ['MYSQL_DATABASE_PORT'])
+def getMysqlConnection():
+  return mysql.connector.connect(host='database', database=os.environ.get('MYSQL_DATABASE_DB', 'persons'), user=os.environ.get('MYSQL_DATABASE_USER', 'root'), password=os.environ.get('MYSQL_DATABASE_PASSWORD', ''))
 
-mysql = MySQL()
-mysql.init_app(application)
-
-@application.route('/persons/', methods=['GET'])
+@app.route('/persons/', methods=['GET'])
 def getPersons():
   try:
-    conn = mysql.connect()
-    cur = mysql.get_db().cursor()
-    cur.execute('SELECT * FROM persons')
+    conn = getMysqlConnection()
+    cur = conn.cursor()
+    cur.execute('SELECT * FROM person')
+    row_headers=[x[0] for x in cur.description]
     rows = cur.fetchall()
-    response = jsonify(rows)
-    response.status_code = 200
-    return response
+    json_data=[]
+    for result in rows:
+      json_data.append(dict(zip(row_headers,result)))
+    return jsonify(json_data)
+    cur.close()
+    conn.close()
   except Exception as e:
     print(e)
     return str(e), 500
 
-@application.route('/person/', methods=['POST'])
+@app.route('/person', methods=['POST'])
 def createPerson():
   try:
-    conn = mysql.connect()
-    cur = mysql.get_db().cursor()
-    data = request.get_json(force=True)
+    conn = getMysqlConnection()
+    cur = conn.cursor()
+    firstname = request.form.get('firstname')
+    lastname = request.form.get('lastname')
 
-    cur.execute('INSERT INTO persons (Firstname, Lastname) VALUES (%(firstname)s, %(lastname)s)', { 'firstname': data['Firstname'], 'lastname': data['Lastname']})
+    cur.execute('INSERT INTO person (Firstname, Lastname) VALUES (%(firstname)s, %(lastname)s)', { 'firstname': firstname, 'lastname': lastname})
     conn.commit()
-    response = ''
-    response.status_code = 201
-    return response
+    return Response('', 201)
+    cur.close()
+    conn.close()
   except Exception as e:
     print(e)
     return str(e), 500
@@ -48,4 +50,4 @@ def createPerson():
 if __name__ == '__main__':
   ENVIRONMENT_DEBUG = os.environ.get("APP_DEBUG", True)
   ENVIRONMENT_PORT = os.environ.get("APP_PORT", 5000)
-  application.run(host='0.0.0.0', port=ENVIRONMENT_PORT, debug=ENVIRONMENT_DEBUG)
+  app.run(host='0.0.0.0', port=ENVIRONMENT_PORT, debug=ENVIRONMENT_DEBUG)
